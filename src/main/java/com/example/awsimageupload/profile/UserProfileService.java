@@ -28,27 +28,32 @@ public class UserProfileService {
     public void uploadUserProfileImage(UUID userProfileId, MultipartFile file) {
         isFileExit(file);
         isFileAnImage(file);
-        getAnImage(userProfileId);
+
+
+        UserProfile user = getAvailable_in_database(userProfileId);
 
         Map<String, String> metadeta = new HashMap<>();
         metadeta.put("Content-Type", file.getContentType());
         metadeta.put("Content-length",String.valueOf( file.getSize()));
-        String path = String.format("%s/%s", BucketName.PROFILE_IMAGE.getBucketName(), userProfileDataAccessService.getUserProfiles());
+        String path = String.format("%s/%s", BucketName.PROFILE_IMAGE.getBucketName(), user.getUserProfileId());
         String fileName = String.format("%s-%s",file.getOriginalFilename(), UUID.randomUUID());
         try {
             fileStore.save(path, fileName, Optional.of(metadeta), file.getInputStream());
+
+
         }catch (IOException e){
             throw new IllegalStateException("File upload fail ");
         }
     }
 
-    private void getAnImage(UUID userProfileId) {
-        userProfileDataAccessService.getUserProfiles()
+    private UserProfile getAvailable_in_database(UUID userProfileId) {
+        return userProfileDataAccessService.getUserProfiles()
                 .stream()
                 .filter(userProfile -> userProfile.getUserProfileId().equals(userProfileId))
                 .findFirst()
                 .orElseThrow(()-> new IllegalStateException(String.format( "User not available in database", userProfileId)));
     }
+
 
     private void isFileAnImage(MultipartFile file) {
         if(!Arrays.asList(ContentType.IMAGE_JPEG.getMimeType(), ContentType.IMAGE_PNG.getMimeType(),
